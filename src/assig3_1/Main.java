@@ -1,32 +1,18 @@
 package assig3_1;
-// Class to control the order of execution and the running state of the threads
+/**
+ * Class to control the order of execution and the running state of the threads
+ */
 class OrderController {
-    private int orderNumber;
-    boolean isRunning;
-
-    public OrderController() {
-        orderNumber = 1;
-        isRunning = false;
-    }
-
-    // Method to change the orderNumber
-    public void changeOrder() {
-        if (orderNumber < 3) {
-            orderNumber++;
-        } else {
-            orderNumber = 1;
-        }
-    }
-
-    public void setRunning(boolean flag) {
-        isRunning = flag;
-    }
-
-    public int getOrderNumber() {
-        return orderNumber;
-    }
+    boolean t1 = true;
+    boolean t2 = false;
+    boolean t3 = false;
 }
 
+/**
+ *  class that syncs 3 Threads t1 t2 t3
+ *  in a specific order first t1 from start to finish, then t2 from start to finish a number of times depending on the cpu
+ *  lastly t3 from start to finish back to t1, an endless cycle
+ */
 public class Main {
     public static void main(String args[]) {
 
@@ -36,7 +22,7 @@ public class Main {
         Thread t1 = new Thread(() -> {
             while (true) {
                 synchronized (lock) {
-                    while (orderController.getOrderNumber() != 1) {
+                    while (!orderController.t1) { // wait until its t1 turn
                         try {
                             lock.wait();
                         } catch (InterruptedException e) {
@@ -44,10 +30,11 @@ public class Main {
                         }
                     }
                     // Code block A
-                    System.out.println("1");
+                    System.out.println("A");
                     // Code block A
 
-                    orderController.changeOrder();
+                    orderController.t1 = false;
+                    orderController.t2 = true;
                     lock.notifyAll();
                 }
             }
@@ -56,7 +43,7 @@ public class Main {
         Thread t2 = new Thread(() -> {
             while (true) {
                 synchronized (lock) {
-                    while (orderController.getOrderNumber() != 2) {
+                    while (!orderController.t2) { // wait until its t2 turn
                         try {
                             lock.wait();
                         } catch (InterruptedException e) {
@@ -64,40 +51,33 @@ public class Main {
                         }
                     }
                     // Code block B
-                    System.out.println("2");
+                    System.out.println("B");
                     // Code block B
 
+                    orderController.t3 = true;
                     lock.notifyAll();
-                    if (orderController.isRunning) {
-                        orderController.setRunning(false);
-                        continue;
-                    }
-                    orderController.changeOrder();
+
                 }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+
             }
         });
 
         Thread t3 = new Thread(() -> {
             while (true) {
                 synchronized (lock) {
-                    while (orderController.getOrderNumber() != 3) {
+                    while (!orderController.t3) { // wait until its t3 turn
                         try {
-                            orderController.setRunning(true);
                             lock.wait();
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
                     }
+                    orderController.t2 = false;
                     // Code block C
-                    System.out.println("3\n_");
+                    System.out.println("C\n_");
                     // Code block C
-                    orderController.changeOrder();
-                    orderController.setRunning(false);
+                    orderController.t3 = false;
+                    orderController.t1 = true;
                     lock.notifyAll();
                 }
             }
